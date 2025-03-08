@@ -36,22 +36,31 @@ TTB Fetch is a **ROS2-based** robotic system that enables a **TurtleBot4** to pl
 
 ## Detailed Breakdown
 ### 1. **Ball Detection** (Using Camera & Point Cloud Data)
-- **RGB Filtering**: Extracts **green/yellow** pixels corresponding to a tennis ball.
+- **RGB Filtering**:
+  - Extracts **green/yellow** pixels corresponding to a tennis ball.
+  - Uses predefined color thresholds to differentiate the ball from background objects.
 - **Point Cloud Processing**:
-  - Converts **PointCloud2** data to a structured array.
-  - Filters and stabilizes the detected ball position over **multiple samples**.
+  - Converts **PointCloud2** data from the camera into a structured array.
+  - Extracts the 3D coordinates of detected pixels that match the ball's color signature.
+- **Frame Transformation**:
+  - The ball’s coordinates are detected in the **camera frame**.
+  - The system retrieves the **TF transformation chain** from the **camera frame** to the **Odometry frame (odom)**.
+  - Applies **homogeneous transformations** to convert the ball’s detected position into the **odom frame**, allowing global positioning.
 - **Stabilization Check**:
   - If the ball position has **low variance over multiple frames**, it's marked as stationary.
   - This prevents chasing moving objects falsely identified as balls.
 
 ### 2. **Navigation to Ball** (Using Odometry & TF)
 - **Compute Goal Position**:
-  - Converts **camera frame** coordinates into the **Odometry frame**.
+  - The transformed **(x, y)** coordinates of the ball in **odom** become the robot’s new goal.
   - Publishes a **visual marker** for debugging.
 - **Control System**:
   - Uses **linear velocity (proportional to distance)** to approach the ball.
   - Adjusts **angular velocity** to minimize heading error.
   - Uses **obstacle detection** from LiDAR to slow down or avoid collisions.
+- **Obstacle Avoidance**:
+  - If LiDAR detects an obstacle within **safe distance**, the robot adjusts its path.
+  - If the obstacle is too close, the robot stops until it clears.
 
 ### 3. **Picking Up the Ball**
 - Uses the **KidnapStatus** message to detect when the ball is picked up.
@@ -61,11 +70,13 @@ TTB Fetch is a **ROS2-based** robotic system that enables a **TurtleBot4** to pl
 - Uses **blue color filtering** to identify the human.
 - Converts detected human position into **goal coordinates**.
 - Uses **LiDAR and Odometry** for safe approach.
+- If the detected human position **oscillates too much**, it waits for stabilization before proceeding.
 
 ### 5. **Obstacle Avoidance**
 - Processes **LaserScan** data to determine the closest obstacle distance.
 - Implements an emergency stop if an obstacle is too close.
 - Uses **angular corrections** to navigate around obstacles.
+
 
 ## Installation & Execution
 ### Requirements
